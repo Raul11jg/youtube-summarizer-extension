@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "build:extension": "vite build && cp manifest.json dist/ && cp popup.html dist/",
+    "build:extension": "vite build && cp manifest.json dist/ && cp popup.html dist/ && cp -r icons dist/",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write ."
   },

@@ -6,7 +6,8 @@
       "Bash(pnpm run:*)",
       "Bash(git config:*)",
       "Bash(npm install:*)",
-      "Bash(yarn add:*)"
+      "Bash(yarn add:*)",
+      "Bash(npm run build:extension:*)"
     ],
     "deny": []
   }
