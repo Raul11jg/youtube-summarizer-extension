@@ -3,7 +3,10 @@
     "allow": [
       "Bash(claude doctor)",
       "Bash(mkdir:*)",
-      "Bash(pnpm run:*)"
+      "Bash(pnpm run:*)",
+      "Bash(git config:*)",
+      "Bash(npm install:*)",
+      "Bash(yarn add:*)"
     ],
     "deny": []
   }

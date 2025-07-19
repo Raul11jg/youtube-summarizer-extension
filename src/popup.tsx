@@ -21,11 +21,15 @@ const Popup: React.FC = () => {
       const currentTab = tabs[0];
       if (currentTab.url?.includes('youtube.com/watch')) {
         // Send message to content script to get video info
-        chrome.tabs.sendMessage(currentTab.id!, { action: 'getVideoInfo' }, (response) => {
-          if (response) {
-            setVideoInfo(response);
+        chrome.tabs.sendMessage(
+          currentTab.id!,
+          { action: 'getVideoInfo' },
+          (response) => {
+            if (response) {
+              setVideoInfo(response);
+            }
           }
-        });
+        );
       } else {
         setError('Please open a YouTube video to use this extension.');
       }
@@ -34,22 +38,29 @@ const Popup: React.FC = () => {
 
   const handleSummarize = async () => {
     if (!videoInfo) return;
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       // Get current tab and send message to content script
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const response = await chrome.tabs.sendMessage(tabs[0].id!, { action: 'summarizeVideo' });
-      
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const response = await chrome.tabs.sendMessage(tabs[0].id!, {
+        action: 'summarizeVideo',
+      });
+
       if (response.success) {
         setSummary(response.summary);
       } else {
         setError(response.error || 'Failed to generate summary');
       }
     } catch (err) {
-      setError('Error communicating with the page. Please refresh and try again.');
+      setError(
+        'Error communicating with the page. Please refresh and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -73,9 +84,15 @@ const Popup: React.FC = () => {
 
       {videoInfo && (
         <div className="mb-4">
-          <h2 className="text-sm font-medium text-gray-700 mb-2">Current Video:</h2>
-          <p className="text-xs text-gray-600 line-clamp-2">{videoInfo.title}</p>
-          <p className="text-xs text-gray-500 mt-1">Duration: {videoInfo.duration}</p>
+          <h2 className="text-sm font-medium text-gray-700 mb-2">
+            Current Video:
+          </h2>
+          <p className="text-xs text-gray-600 line-clamp-2">
+            {videoInfo.title}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Duration: {videoInfo.duration}
+          </p>
         </div>
       )}
 

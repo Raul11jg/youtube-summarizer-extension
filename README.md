@@ -20,11 +20,13 @@ A Chrome extension that summarizes YouTube videos using AI.
 ### Setup
 
 1. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 2. Build the extension:
+
 ```bash
 pnpm run build:extension
 ```
