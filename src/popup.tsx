@@ -1,131 +1,171 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Play, FileText, Loader2 } from 'lucide-react';
-import './styles.css';
+import { Settings, Sparkles } from 'lucide-react';
 
-interface VideoInfo {
-  title: string;
-  url: string;
-  duration: string;
+interface ExtensionSettings {
+  autoSummarize: boolean;
+  apiKey: string;
+  summaryLength: 'short' | 'medium' | 'long';
 }
 
-const Popup: React.FC = () => {
-  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
-  const [summary, setSummary] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+const PopupApp: React.FC = () => {
+  const [settings, setSettings] = useState<ExtensionSettings>({
+    autoSummarize: false,
+    apiKey: '',
+    summaryLength: 'medium',
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Get current tab info
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const currentTab = tabs[0];
-      if (currentTab.url?.includes('youtube.com/watch')) {
-        // Send message to content script to get video info
-        chrome.tabs.sendMessage(
-          currentTab.id!,
-          { action: 'getVideoInfo' },
-          (response) => {
-            if (response) {
-              setVideoInfo(response);
-            }
-          }
-        );
-      } else {
-        setError('Please open a YouTube video to use this extension.');
-      }
-    });
+    loadSettings();
   }, []);
 
-  const handleSummarize = async () => {
-    if (!videoInfo) return;
-
-    setIsLoading(true);
-    setError('');
-
+  const loadSettings = async () => {
     try {
-      // Get current tab and send message to content script
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
+      const response = await chrome.runtime.sendMessage({
+        action: 'getSettings',
       });
-      const response = await chrome.tabs.sendMessage(tabs[0].id!, {
-        action: 'summarizeVideo',
-      });
-
       if (response.success) {
-        setSummary(response.summary);
-      } else {
-        setError(response.error || 'Failed to generate summary');
+        setSettings(response.data);
       }
-    } catch (err) {
-      setError(
-        'Error communicating with the page. Please refresh and try again.'
-      );
+    } catch (error) {
+      console.error('Error loading settings:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (error) {
+  const saveSettings = async () => {
+    setIsSaving(true);
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'saveSettings',
+        settings: settings,
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleAutoSummarize = () => {
+    const newSettings = { ...settings, autoSummarize: !settings.autoSummarize };
+    setSettings(newSettings);
+    // Auto-save this setting
+    chrome.runtime.sendMessage({
+      action: 'saveSettings',
+      settings: newSettings,
+    });
+  };
+
+  if (isLoading) {
     return (
-      <div className="p-4 text-center">
-        <div className="text-red-600 mb-2">⚠️</div>
-        <p className="text-sm text-gray-600">{error}</p>
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Play className="w-5 h-5 text-red-600" />
-        <h1 className="text-lg font-semibold">YouTube Summarizer</h1>
+    <div className="p-4 bg-white">
+      {/* Header */}
+      <div className="flex items-center space-x-2 mb-6">
+        <Sparkles className="w-6 h-6 text-purple-600" />
+        <h1 className="text-lg font-semibold text-gray-900">
+          YouTube Summarizer
+        </h1>
       </div>
 
-      {videoInfo && (
-        <div className="mb-4">
-          <h2 className="text-sm font-medium text-gray-700 mb-2">
-            Current Video:
-          </h2>
-          <p className="text-xs text-gray-600 line-clamp-2">
-            {videoInfo.title}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Duration: {videoInfo.duration}
-          </p>
+      {/* Settings */}
+      <div className="space-y-4">
+        {/* Auto-summarize toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-gray-900">
+              Auto-summarize
+            </h3>
+            <p className="text-xs text-gray-600">
+              Automatically summarize new videos
+            </p>
+          </div>
+          <button
+            onClick={handleToggleAutoSummarize}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              settings.autoSummarize ? 'bg-purple-600' : 'bg-gray-200'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                settings.autoSummarize ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
         </div>
-      )}
 
-      <button
-        onClick={handleSummarize}
-        disabled={!videoInfo || isLoading}
-        className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 mb-4"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Generating Summary...
-          </>
-        ) : (
-          <>
-            <FileText className="w-4 h-4" />
-            Summarize Video
-          </>
-        )}
-      </button>
-
-      {summary && (
-        <div className="border rounded-lg p-3 bg-gray-50">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Summary:</h3>
-          <p className="text-xs text-gray-600 leading-relaxed">{summary}</p>
+        {/* Summary length */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 mb-2">
+            Summary length
+          </h3>
+          <div className="flex space-x-2">
+            {(['short', 'medium', 'long'] as const).map((length) => (
+              <button
+                key={length}
+                onClick={() =>
+                  setSettings({ ...settings, summaryLength: length })
+                }
+                className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                  settings.summaryLength === length
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {length.charAt(0).toUpperCase() + length.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* API Key (placeholder for future) */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 mb-2">
+            API Configuration
+          </h3>
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
+            🚧 API integration coming soon!
+            <br />
+            Currently using mock summaries for testing.
+          </div>
+        </div>
+      </div>
+
+      {/* Save button */}
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <button
+          onClick={saveSettings}
+          disabled={isSaving}
+          className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors"
+        >
+          {isSaving ? 'Saving...' : 'Save Settings'}
+        </button>
+      </div>
+
+      {/* Status */}
+      <div className="mt-4 text-center">
+        <div className="inline-flex items-center space-x-1 text-xs text-gray-500">
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span>Extension Active</span>
+        </div>
+      </div>
     </div>
   );
 };
 
-const container = document.getElementById('root');
+// Render the popup
+const container = document.getElementById('popup-root');
 if (container) {
   const root = createRoot(container);
-  root.render(<Popup />);
+  root.render(<PopupApp />);
 }

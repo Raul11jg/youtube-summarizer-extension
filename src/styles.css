@@ -9,3 +9,27 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Ensure our extension integrates well with YouTube */
+.youtube-summarizer-root {
+  font-family: 'Roboto', 'Arial', sans-serif;
+  z-index: 1000;
+  position: relative;
+}
+
+/* Override any conflicting YouTube styles */
+.youtube-summarizer-root * {
+  box-sizing: border-box;
+}
+
+.youtube-summarizer-root button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Dark theme compatibility */
+@media (prefers-color-scheme: dark) {
+  .youtube-summarizer-root {
+    color-scheme: dark;
+  }
+}
